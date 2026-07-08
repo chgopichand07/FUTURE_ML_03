@@ -319,6 +319,3 @@ I sincerely thank **Future Interns** for providing an opportunity to work on pra
 
 ## CHINTALA GOPI CHAND
 
-**Made with ❤️ using Python, NLP & Machine Learning**
-
-</div>
