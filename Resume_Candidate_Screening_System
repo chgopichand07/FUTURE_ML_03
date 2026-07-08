@@ -1,0 +1,602 @@
+
+# ==========================================================
+# RESUME / CANDIDATE SCREENING SYSTEM
+# Future Interns ML Task 3
+# PART 1 : Dataset Generation + NLP Preprocessing
+# ==========================================================
+
+import pandas as pd
+import numpy as np
+import re
+import nltk
+import matplotlib.pyplot as plt
+
+from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+nltk.download("stopwords")
+
+print("="*60)
+print("RESUME SCREENING SYSTEM")
+print("="*60)
+
+# ----------------------------------------------------------
+# Job Description
+# ----------------------------------------------------------
+
+job_description = """
+Looking for a Machine Learning Intern.
+
+Required Skills:
+
+Python
+Machine Learning
+Deep Learning
+Pandas
+NumPy
+Scikit Learn
+TensorFlow
+SQL
+Data Analysis
+Statistics
+Git
+Communication
+Problem Solving
+"""
+
+# ----------------------------------------------------------
+# Resume Dataset
+# ----------------------------------------------------------
+
+resumes = [
+
+{
+"name":"Rahul",
+"resume":"Python Machine Learning Pandas NumPy Scikit Learn SQL Git Data Analysis Communication"
+},
+
+{
+"name":"Priya",
+"resume":"Java HTML CSS JavaScript React SQL Git Teamwork Communication"
+},
+
+{
+"name":"Arjun",
+"resume":"Python Deep Learning TensorFlow Keras Pandas Machine Learning Statistics SQL"
+},
+
+{
+"name":"Sneha",
+"resume":"Python Data Analysis Excel Power BI SQL Statistics Pandas"
+},
+
+{
+"name":"Kiran",
+"resume":"Machine Learning Python NumPy Pandas TensorFlow Deep Learning Git SQL"
+},
+
+{
+"name":"Anjali",
+"resume":"Java Spring Boot MySQL HTML CSS Bootstrap"
+},
+
+{
+"name":"Vikram",
+"resume":"Python Machine Learning Artificial Intelligence Data Analysis Statistics Communication"
+},
+
+{
+"name":"Keerthi",
+"resume":"Python SQL Git Pandas NumPy Machine Learning Data Visualization"
+},
+
+{
+"name":"Rohit",
+"resume":"C C++ Java Operating Systems Computer Networks DBMS"
+},
+
+{
+"name":"Divya",
+"resume":"Python Machine Learning TensorFlow SQL Statistics Git Pandas NumPy Communication"
+}
+
+]
+
+df = pd.DataFrame(resumes)
+
+print("\nCandidate Dataset")
+
+print(df)
+
+# ----------------------------------------------------------
+# Text Cleaning
+# ----------------------------------------------------------
+
+stop_words = set(stopwords.words("english"))
+
+def clean_text(text):
+
+    text = text.lower()
+
+    text = re.sub(r'[^a-zA-Z ]',' ',text)
+
+    words = text.split()
+
+    words = [word for word in words if word not in stop_words]
+
+    return " ".join(words)
+
+df["Clean_Resume"] = df["resume"].apply(clean_text)
+
+job_clean = clean_text(job_description)
+
+print("\nCleaned Resume Example\n")
+
+print(df[["name","Clean_Resume"]])
+
+# ----------------------------------------------------------
+# TF-IDF Vectorization
+# ----------------------------------------------------------
+
+vectorizer = TfidfVectorizer()
+
+resume_vectors = vectorizer.fit_transform(
+    df["Clean_Resume"]
+)
+
+job_vector = vectorizer.transform(
+    [job_clean]
+)
+
+print("\nTF-IDF Matrix Shape")
+
+print(resume_vectors.shape)
+
+print("\nPart 1 Completed Successfully!")
+# ==========================================================
+# PART 2 : Resume Similarity, Ranking & Skill Gap Analysis
+# ==========================================================
+
+from sklearn.metrics.pairwise import cosine_similarity
+
+print("\n" + "="*60)
+print("RESUME MATCHING & CANDIDATE RANKING")
+print("="*60)
+
+# ----------------------------------------------------------
+# Calculate Cosine Similarity
+# ----------------------------------------------------------
+
+similarity_scores = cosine_similarity(
+    resume_vectors,
+    job_vector
+)
+
+df["Match Score"] = (
+    similarity_scores.flatten() * 100
+).round(2)
+
+# ----------------------------------------------------------
+# Skill Extraction
+# ----------------------------------------------------------
+
+required_skills = [
+    "python",
+    "machine",
+    "learning",
+    "deep",
+    "tensorflow",
+    "pandas",
+    "numpy",
+    "scikit",
+    "sql",
+    "statistics",
+    "git",
+    "communication",
+    "problem",
+    "solving",
+    "analysis"
+]
+
+candidate_skills = []
+
+missing_skills = []
+
+for resume in df["Clean_Resume"]:
+
+    skills_found = []
+
+    skills_missing = []
+
+    for skill in required_skills:
+
+        if skill in resume:
+
+            skills_found.append(skill)
+
+        else:
+
+            skills_missing.append(skill)
+
+    candidate_skills.append(", ".join(skills_found))
+
+    missing_skills.append(", ".join(skills_missing))
+
+df["Matched Skills"] = candidate_skills
+
+df["Missing Skills"] = missing_skills
+
+# ----------------------------------------------------------
+# Candidate Status
+# ----------------------------------------------------------
+
+status = []
+
+for score in df["Match Score"]:
+
+    if score >= 80:
+
+        status.append("Excellent Match")
+
+    elif score >= 60:
+
+        status.append("Strong Match")
+
+    elif score >= 40:
+
+        status.append("Good Match")
+
+    else:
+
+        status.append("Needs Improvement")
+
+df["Status"] = status
+
+# ----------------------------------------------------------
+# Ranking Candidates
+# ----------------------------------------------------------
+
+ranking = df.sort_values(
+    by="Match Score",
+    ascending=False
+).reset_index(drop=True)
+
+ranking.index += 1
+
+ranking.index.name = "Rank"
+
+print("\nCandidate Ranking\n")
+
+print(
+    ranking[
+        [
+            "name",
+            "Match Score",
+            "Status"
+        ]
+    ]
+)
+
+# ----------------------------------------------------------
+# Best Candidate
+# ----------------------------------------------------------
+
+best = ranking.iloc[0]
+
+print("\n" + "="*60)
+
+print("BEST CANDIDATE")
+
+print("="*60)
+
+print("Name :", best["name"])
+
+print("Match Score :", best["Match Score"], "%")
+
+print("Status :", best["Status"])
+
+# ----------------------------------------------------------
+# Missing Skills Report
+# ----------------------------------------------------------
+
+print("\n" + "="*60)
+
+print("SKILL GAP ANALYSIS")
+
+print("="*60)
+
+for i,row in ranking.iterrows():
+
+    print("\nCandidate :",row["name"])
+
+    print("Matched Skills :")
+
+    print(row["Matched Skills"])
+
+    print("\nMissing Skills :")
+
+    print(row["Missing Skills"])
+
+    print("-"*50)
+
+# ----------------------------------------------------------
+# Statistics
+# ----------------------------------------------------------
+
+print("\n" + "="*60)
+
+print("PROJECT STATISTICS")
+
+print("="*60)
+
+print("Total Candidates :",len(df))
+
+print("Average Match Score :",
+      round(df["Match Score"].mean(),2))
+
+print("Highest Match Score :",
+      round(df["Match Score"].max(),2))
+
+print("Lowest Match Score :",
+      round(df["Match Score"].min(),2))
+
+# ----------------------------------------------------------
+# Score Categories
+# ----------------------------------------------------------
+
+excellent = len(df[df["Status"]=="Excellent Match"])
+
+strong = len(df[df["Status"]=="Strong Match"])
+
+good = len(df[df["Status"]=="Good Match"])
+
+poor = len(df[df["Status"]=="Needs Improvement"])
+
+print("\nExcellent Matches :",excellent)
+
+print("Strong Matches :",strong)
+
+print("Good Matches :",good)
+
+print("Needs Improvement :",poor)
+
+print("\nPart 2 Completed Successfully!")
+# ==========================================================
+# PART 3 : Visualizations + Custom Resume + Export + Insights
+# ==========================================================
+
+from collections import Counter
+
+print("\n" + "="*60)
+print("VISUALIZATIONS")
+print("="*60)
+
+# ----------------------------------------------------------
+# Candidate Score Bar Chart
+# ----------------------------------------------------------
+
+plt.figure(figsize=(10,5))
+
+plt.bar(
+    ranking["name"],
+    ranking["Match Score"]
+)
+
+plt.title("Candidate Match Scores")
+
+plt.xlabel("Candidates")
+
+plt.ylabel("Match Score (%)")
+
+plt.xticks(rotation=45)
+
+plt.grid(axis="y")
+
+plt.show()
+
+# ----------------------------------------------------------
+# Candidate Status Pie Chart
+# ----------------------------------------------------------
+
+status_count = ranking["Status"].value_counts()
+
+plt.figure(figsize=(6,6))
+
+plt.pie(
+    status_count,
+    labels=status_count.index,
+    autopct="%1.1f%%",
+    startangle=90
+)
+
+plt.title("Candidate Status Distribution")
+
+plt.show()
+
+# ----------------------------------------------------------
+# Most Common Skills
+# ----------------------------------------------------------
+
+all_skills = []
+
+for skills in ranking["Matched Skills"]:
+
+    for skill in skills.split(","):
+
+        skill = skill.strip()
+
+        if skill != "":
+            all_skills.append(skill)
+
+counter = Counter(all_skills)
+
+top = counter.most_common(10)
+
+skill_df = pd.DataFrame(
+    top,
+    columns=[
+        "Skill",
+        "Frequency"
+    ]
+)
+
+plt.figure(figsize=(10,5))
+
+plt.bar(
+    skill_df["Skill"],
+    skill_df["Frequency"]
+)
+
+plt.title("Top Skills Found in Candidates")
+
+plt.xlabel("Skill")
+
+plt.ylabel("Frequency")
+
+plt.grid(axis="y")
+
+plt.show()
+
+# ----------------------------------------------------------
+# Custom Resume Screening
+# ----------------------------------------------------------
+
+print("\n" + "="*60)
+print("SCREEN YOUR OWN RESUME")
+print("="*60)
+
+resume = input("Paste Resume Skills:\n")
+
+resume_clean = clean_text(resume)
+
+resume_vector = vectorizer.transform([resume_clean])
+
+score = cosine_similarity(
+    resume_vector,
+    job_vector
+)[0][0] * 100
+
+matched = []
+
+missing = []
+
+for skill in required_skills:
+
+    if skill in resume_clean:
+
+        matched.append(skill)
+
+    else:
+
+        missing.append(skill)
+
+print("\nResume Match Score :",
+      round(score,2),"%")
+
+if score >= 80:
+
+    print("Status : Excellent Match")
+
+elif score >= 60:
+
+    print("Status : Strong Match")
+
+elif score >= 40:
+
+    print("Status : Good Match")
+
+else:
+
+    print("Status : Needs Improvement")
+
+print("\nMatched Skills")
+
+print(", ".join(matched))
+
+print("\nMissing Skills")
+
+print(", ".join(missing))
+
+# ----------------------------------------------------------
+# Export Ranking
+# ----------------------------------------------------------
+
+ranking.to_csv(
+    "Candidate_Ranking.csv",
+    index=False
+)
+
+print("\nCandidate ranking exported successfully!")
+
+print("File Name : Candidate_Ranking.csv")
+
+# ----------------------------------------------------------
+# Top 5 Candidates
+# ----------------------------------------------------------
+
+print("\n" + "="*60)
+print("TOP 5 CANDIDATES")
+print("="*60)
+
+print(
+    ranking[
+        [
+            "name",
+            "Match Score",
+            "Status"
+        ]
+    ].head()
+)
+
+# ----------------------------------------------------------
+# HR Insights
+# ----------------------------------------------------------
+
+print("\n" + "="*60)
+print("HR INSIGHTS")
+print("="*60)
+
+print("""
+
+1. The system automatically ranks candidates based on resume similarity.
+
+2. Higher match scores indicate better alignment with the job description.
+
+3. Missing skills help recruiters identify training requirements.
+
+4. Resume screening reduces manual effort.
+
+5. Recruiters can shortlist candidates much faster.
+
+6. The system provides objective and consistent evaluation.
+
+7. Skill matching improves hiring quality.
+
+8. NLP enables automated resume understanding.
+
+9. Similarity scoring makes recruitment more efficient.
+
+10. This project demonstrates a simplified AI-powered Applicant Tracking System (ATS).
+
+""")
+
+# ----------------------------------------------------------
+# Final Summary
+# ----------------------------------------------------------
+
+print("="*60)
+print("PROJECT SUMMARY")
+print("="*60)
+
+print("Total Candidates :", len(ranking))
+
+print("Best Candidate :", ranking.iloc[0]["name"])
+
+print("Highest Match Score :", ranking.iloc[0]["Match Score"], "%")
+
+print("Average Match Score :", round(ranking["Match Score"].mean(),2), "%")
+
+print("\nResume Screening Completed Successfully!")
+
+print("\nFuture Interns Machine Learning Task 3")
+print("Resume / Candidate Screening System")
